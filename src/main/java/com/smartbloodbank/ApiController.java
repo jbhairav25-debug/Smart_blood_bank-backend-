@@ -1,6 +1,6 @@
 package com.smartbloodbank;
 
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -11,7 +11,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -20,6 +21,7 @@ import java.util.*;
 
 @RestController
 public class ApiController {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ApiController.class);
     private static final List<String> BLOOD_GROUPS = List.of("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-");
     private static final List<String> SELF_REGISTRATION_ROLES = List.of("donor", "hospital");
     private static final List<String> REQUEST_STATUSES = List.of("pending", "approved", "rejected");
@@ -33,24 +35,21 @@ public class ApiController {
         this.jwtService = jwtService;
     }
 
-    @GetMapping(value = {"/", "/login", "/register", "/admin", "/donor", "/hospital"},
-            produces = MediaType.TEXT_HTML_VALUE)
-    public org.springframework.core.io.Resource page(jakarta.servlet.http.HttpServletRequest request) {
-        String file = switch (request.getRequestURI()) {
-            case "/login" -> "login.html";
-            case "/register" -> "register.html";
-            case "/admin" -> "admin-dashboard.html";
-            case "/donor" -> "donor-dashboard.html";
-            case "/hospital" -> "hospital-dashboard.html";
-            default -> "index.html";
-        };
-        return new ClassPathResource("static/views/" + file);
+    @GetMapping(value = "/", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, String> root() {
+        return Map.of("service", "Smart Blood Bank API", "status", "running", "health", "/health");
     }
 
     @GetMapping("/health")
-    public Map<String, String> health() {
-        db.queryForObject("SELECT 1", Integer.class);
-        return Map.of("status", "UP");
+    public ResponseEntity<Map<String, String>> health() {
+        try {
+            db.queryForObject("SELECT 1", Integer.class);
+            return ResponseEntity.ok(Map.of("status", "UP"));
+        } catch (DataAccessException exception) {
+            LOGGER.error("Database health check failed.", exception);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("status", "DOWN", "message", "Database connection failed."));
+        }
     }
 
     @PostMapping("/api/auth/register")

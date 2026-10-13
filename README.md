@@ -16,6 +16,7 @@ Set these environment variables in Render. Do not commit their values:
 | `JWT_SECRET` | Private random value, at least 32 characters |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated frontend origins, e.g. `https://your-site.vercel.app` |
 
-The database must be hosted separately and reachable from Render. The API health check at
-`/health` verifies database connectivity. The frontend is deployed separately on Vercel and
+The database must be hosted separately and reachable from Render. The service root (`/`) returns
+API status information; `/health` verifies database connectivity and returns HTTP 503 with a
+JSON error if the database is unavailable. The frontend is deployed separately on Vercel and
 must be configured to send `/api` requests to this service.
