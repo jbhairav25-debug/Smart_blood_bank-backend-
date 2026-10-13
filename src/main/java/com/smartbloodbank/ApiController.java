@@ -47,6 +47,12 @@ public class ApiController {
         return new ClassPathResource("static/views/" + file);
     }
 
+    @GetMapping("/health")
+    public Map<String, String> health() {
+        db.queryForObject("SELECT 1", Integer.class);
+        return Map.of("status", "UP");
+    }
+
     @PostMapping("/api/auth/register")
     @Transactional
     public ResponseEntity<Map<String, Object>> register(@RequestBody Map<String, Object> body) {
